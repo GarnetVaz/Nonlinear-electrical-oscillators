@@ -15,6 +15,16 @@ import matplotlib.colors as colors
 import matplotlib.cm as cmx
 np.seterr(all='warn', over='raise')
 
+# To time the code we use a simple decorator.
+def timecode(method):
+    def timed(*args,**kw):
+        tstart = time.time()
+        result = method(*args,**kw)
+        tend = time.time()
+        print "Time for {0:s} is {1:g}".format(method.__name__,tend-tstart)
+        return result
+    return timed
+
 class Mygraph :
     def __init__(self, graphtype, graphvars) :
         """ Initialize graph.
@@ -1030,22 +1040,6 @@ class Mygraph :
 if __name__ == '__main__' :
 
 
-    # To time the code we use a simple decorator.
-    # The number of iterations is set to 1.
-    # This just provides timing for 1 run.
-    # To obtain the mean over 'k' iterations,
-    # change k in the definition of the decorator below.
-    def timecode(method,k = 1):
-        def timed(k,*args,**kw):
-            tottime = 0.0
-            for i in xrange(k):
-                ts = time.time()
-                result = method(*args,**kw)
-                te = time.time()
-                tottime += (te - ts)
-            print "Mean time for {0:d} runs is {1:g}".format(k,np.mean(tottime))
-            return result
-        return timed
 
 
     # Pick Networkx type graph.

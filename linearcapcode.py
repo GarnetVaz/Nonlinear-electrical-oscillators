@@ -1014,14 +1014,15 @@ class Mygraph :
         """Function to print some summary of the results.
         """
 
+        print "Underlying Graph is {0:s} with parameters {1:s}".format(self.graphtype,self.graphvars)
+        print "Solving for {0:d} modes".format(self.Ord_req)
         print "Difference in energy in the perturbative solution is :\t{}".format(np.abs(self.pertEDiff))
         print "Difference in energy in the iterative solution is    :\t{}".format(np.abs(self.pertEDiff))
 
-
         _max = np.max(np.abs(self.Sol.real))
-        print "Maximum amplitude in computed solution over all nodes in perturbative solution :\t{}".format(_max)
+        print "Maximum amplitude over all nodes in perturbative solution :\t{}".format(_max)
         _max = np.max(np.abs(self.itersolmat))
-        print "Maximum amplitude in computed solution over all nodes in iterative solution    :\t{}".format(_max)
+        print "Maximum amplitude over all nodes in iterative solution    :\t{}".format(_max)
 
 if __name__ == '__main__' :
 
@@ -1034,7 +1035,7 @@ if __name__ == '__main__' :
     data = Mygraph(gtype, param)
 
     # Create all parameters for input.
-    G = 0.05 * np.ones(data.N)                      # Need to change G.
+    G = 0.15 * np.ones(data.N)
 
     mydegrees = nx.degree(data.Gp).values()
     maxdegree = np.max(mydegrees)
@@ -1043,7 +1044,7 @@ if __name__ == '__main__' :
         if (mydegrees[j]==maxdegree):
             G[j] += 1
 
-    Cap0 = G
+    Cap0 = 1.0 * np.ones(data.N)
     Eps = 0.5
 
     # Make sure there is atleast 1 input node.
@@ -1056,12 +1057,13 @@ if __name__ == '__main__' :
     Input_nodes = np.array(Input_nodes)
 
     L = 1.0 * np.ones(data.rawBmat.shape[1] + sum(Input_nodes))
-    forc_amp = 1e+0 * 0.2
+    forc_amp = 0.01
     forc_coef = np.array((1.0, 1.0))
     Ord_req = 10
-    tpoints = 201
+    tpoints = 64
 
     # Initialize the graph.
+    # Value of Omega is set internally.
     data.init_graph(Cap0, Eps, L, G, Input_nodes, forc_amp, forc_coef, Ord_req, tpoints)
 
     # Solves for the parameters upto order Ord_req.
@@ -1073,16 +1075,18 @@ if __name__ == '__main__' :
     data.fouriersol()
     data.iterative_solver()
     data.summary()
-    data.firstordersolve()
 
-    # Resolve by finding optimal Lvec.
+    # Compute the energy in the higher harmonics before optimization.
+    oldconc = np.mean(np.sum(np.abs(data.alphamat[:,1:]),1) / np.sum(np.abs(data.alphamat),1))
+    print "Percentage of energy in higher harmonics before optimization is {0:g}%".format(oldconc*100)
+
+    # Omega value.
     omega = data.Omega
-    wanteigs = np.array([4 * data.Omega**2, data.Omega**2])
 
     try :
-        # data.optimalL()
-        data.optimalL(wanteigs)
+        data.optimalL()
         print "Optimal Lvec found."
+        print "Solving the optimized problem."
     except sla.ArpackNoConvergence :
         print "Arpack convergence problem."
         pass
@@ -1103,7 +1107,9 @@ if __name__ == '__main__' :
     newdata.solve()
     newdata.timesol()
     newdata.fouriersol()
-    #### Numerical solution.
-    # newdata.numeric_solver(_cycles = 1000, doplot = False)
     newdata.iterative_solver()
+
+    # Compute new energy in higher harmonics.
+    newconc = np.mean(np.sum(np.abs(newdata.alphamat[:,1:]),1) / np.sum(np.abs(newdata.alphamat),1))
     newdata.summary()
+    print "Percentage of energy in higher harmonics after optimization is {0:g}%".format(newconc*100)

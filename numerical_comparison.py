@@ -63,7 +63,7 @@ data.Omega = 1.0
 data.solve()
 data.fouriersol()
 # Solve the system using the numerical integrator.
-data.numeric_solver(doplot = False, _cycles = 1500)
+data.numeric_solver(doplot = False, _cycles = 150)
 
 # Obtain a reference solution from the iterative method.
 try :
@@ -115,9 +115,9 @@ fixedpointerror[:,1] = iterfixeddiff
 # Write out data for plot of fixed point error
 # The first line containds the error in numerical method.
 f = open('fixedpoint.txt','w')
-f.write('{0:g}\t{1:g}\n'.format(0.0,numerr))
+f.write('{0:g}\t{1:g}\n'.format(0.0,np.log10(numerr)))
 for i in xrange(len(iterfixeddiff)):
-  f.write('{0:g}\t{1:g}\n'.format(fixedpointerror[i,0],fixedpointerror[i,1]))
+  f.write('{0:g}\t{1:g}\n'.format(np.log10(fixedpointerror[i,0]),np.log10(fixedpointerror[i,1])))
 f.close()
 
 # Data for creating the decay of the Fourier coefficients.
@@ -134,10 +134,16 @@ f.close()
 # Data for creating the figure labelled 4.
 # Difference in iterative/perturbative solutions as a function of iterations.
 numErrors = np.zeros((20,2))
-numErrors[:,0] = pertNumdiff
-numErrors[:,1] = iterNumdiff
+numErrors[:,0] = np.log10(pertNumdiff)
+numErrors[:,1] = np.log10(iterNumdiff)
 f = open('numerical.txt','w')
 np.savetxt(f,numErrors,delimiter='\t')
 f.close()
 
 # Create the plots shown in figures.
+try:
+  retcode = os.system('R CMD BATCH fixedpoint.R')
+  retcode = os.system('R CMD BATCH fourierdecay.R')
+  retcode = os.system('R CMD BATCH numericalerror.R')
+except:
+  print "Unable to create the plots using R"

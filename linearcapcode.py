@@ -7,6 +7,7 @@ import scipy.sparse as sps
 from scipy.sparse import linalg as sla
 import scipy.fftpack as fftp
 import numpy as np
+import time
 import networkx as nx
 from inspect import getargspec
 import matplotlib.pyplot as plt
@@ -207,7 +208,7 @@ class Mygraph :
         self.Coefcell.append(_coef)
         self.Symcell.append(_sym)
 
-
+    @timecode
     def solve(self) :
         """ Main solve function for the perturbative method.
 
@@ -548,6 +549,7 @@ class Mygraph :
 
             self.NEDiff = _energyin - _energyout
 
+    @timecode
     def iterative_solver(self, _maxmode = 20, _maxiter = 200, _tol = 1.0e-14):
 
         # internal tolerance
@@ -776,6 +778,7 @@ class Mygraph :
             _coef = higherorder_firstorder(self.Cap0, self.firstordercoef, itr, self.Symcell, edgeplusnode)
             self.firstordercoef.append(_coef)
 
+    @timecode
     def numeric_solver(self, ind = [], _integrator = 'dopri5', _cycles = 200, doplot = False) :
         """ Numerical solution to the problem.
 
@@ -1025,6 +1028,25 @@ class Mygraph :
         print "Maximum amplitude over all nodes in iterative solution    :\t{}".format(_max)
 
 if __name__ == '__main__' :
+
+
+    # To time the code we use a simple decorator.
+    # The number of iterations is set to 1.
+    # This just provides timing for 1 run.
+    # To obtain the mean over 'k' iterations,
+    # change k in the definition of the decorator below.
+    def timecode(method,k = 1):
+        def timed(k,*args,**kw):
+            tottime = 0.0
+            for i in xrange(k):
+                ts = time.time()
+                result = method(*args,**kw)
+                te = time.time()
+                tottime += (te - ts)
+            print "Mean time for {0:d} runs is {1:g}".format(k,np.mean(tottime))
+            return result
+        return timed
+
 
     # Pick Networkx type graph.
     gtype = 'barabasi_albert_graph'

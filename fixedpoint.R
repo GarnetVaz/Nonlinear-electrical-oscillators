@@ -5,14 +5,14 @@ library(reshape)
 library(ggplot2)
 
 alldata <- read.table('fixedpoint.txt',sep='\t',header=FALSE,skip=0)
-mydata <- alldata[:,2:]
+mydata <- alldata[2:(dim(alldata)[1]),]
 numerr <- alldata[1,2]
 names(mydata) <- c("Perturbative","Iterative")
 dims <- dim(mydata)
 newdata <- melt(mydata)
 newdata$x <- c(1L:dims[1], 1L:dims[1])
-newdata$value <- log10(newdata$value)
-horizontal <- log10(numerr)
+newdata$value <- newdata$value
+horizontal <- numerr
 
 myplot <- ggplot(newdata, aes(x=x,y=value,colour=variable,shape=variable))
 myplot <- myplot + geom_line(size=0.5) + geom_point(size=2.0)

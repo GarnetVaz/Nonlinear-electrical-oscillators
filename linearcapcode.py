@@ -419,12 +419,12 @@ class Mygraph :
     def fouriersol(self, more_ord = 0) :
         """Finds the solution in Fourier space. Also computes the L2 norm.
 
+        mode_ord can be used to extend if energy conservation is not sufficient.
         Sums up the Coefcell by considering the repective powers of \epsilon.
-        NOTE: Computes only the +k\omega coeffcients.
-        L2 norm is found for each node. Will help in finding
-        which nodes to end to
+        NOTE: Computes only the +k\omega coeffcients. The -k\omega values are conjugates.
+        L2 norm is found for each node. Will help in finding which nodes to end to
         transfer energy into the higher harmonics better.
-        NOTE: np.diff(self.l2norm, axis = 1) will be helpful here.
+        Internally updates self.pertEdiff which is the error in energy conservation.
         """
         _epsvec = [1.0]
 
@@ -479,9 +479,8 @@ class Mygraph :
 
     def energy_cons(self, method = 'perturbative') :
         """ Compute the energy put in to the system and the energy flowing out.
-        UPDATE: Does the energy balance for both the perturbative solution and
-        the iterative solution. Mention the type in the input.
-        method = 'perturbative' or 'iterative'
+
+        method = 'perturbative' or 'iterative' or 'numerical'
 
         Computes the current coefficient of +\omega only at the Input_nodes,
         since this is all that is required to compute energyin and energyout.
@@ -549,10 +548,10 @@ class Mygraph :
 
             self.NEDiff = _energyin - _energyout
 
-    def iterative_solver(self, _maxmode = 20, _maxiter = 200):
+    def iterative_solver(self, _maxmode = 20, _maxiter = 200, _tol = 1.0e-14):
 
         # internal tolerance
-        _mytol = 3.0e-16
+        _mytol = _tol
 
         _Vin = self.Vin.ravel()
 
@@ -570,9 +569,6 @@ class Mygraph :
             pivmat.append(_piv)
 
         self.simfail = False
-        # To count the number of iterations.
-        # iterdrop = []
-        # errornorm = []
 
         try :
             for i in range(_maxiter):
@@ -616,15 +612,6 @@ class Mygraph :
                 _normcheck = linalg.norm(alphamat - alphamatnew, np.inf)
                 alphamat = alphamatnew.copy()
 
-################################################################
-                # # # This part of code strictly for calculating the erro between numerical solution and the iterative solution at each iteration.
-                # iterdrop.append(_normcheck)
-                # [maxmodemat, tptsmat] = np.meshgrid( np.arange(1, _maxmode+1), self.times)
-                # mttmat = (np.exp(1.0j*self.Omega*maxmodemat*tptsmat)).T
-                # tempsolmat = 2.0*np.real(np.dot(alphamat, mttmat))
-                # errornorm.append(linalg.norm(tempsolmat - self.NSol))
-################################################################
-
                 if (_normcheck < _mytol):
                     break
 
@@ -644,16 +631,14 @@ class Mygraph :
         mttmat = (np.exp(1.0j*self.Omega*maxmodemat*tptsmat)).T
         self.itersolmat = 2.0*np.real(np.dot(self.alphamat, mttmat))
         self.energy_cons(method = 'iterative')
-        # self.itererr = errornorm
-        # self.iterdrop = iterdrop
-
         return
 
     def fixed_point_error(self, alphamat):
 
         """ Code to check what $|| \alpha^{j} - F(\alpha^{j}) ||$.
-        alphamat is the \alphamat from the iterative solution or
-        self.FSol from the perturbative solution.
+        alphamat holds the solution in the fourier domain.
+        self.alphamat -- iterative method.
+        self.FSol -- perturbative method.
 
         Make sure that the matrix is $N \times M$ where $M$ is the number of modes.
         Note: This method returns the value and does not store it.
@@ -715,10 +700,12 @@ class Mygraph :
 
     def firstordersolve(self, maxmode = 10) :
         """Code to solve the same system using the first order equations.
-        Solution
 
+        Used to verify the second-order system is consistent with the
+        first order formulation.
         Solution will be found up to Ord_req.
         """
+
         invlmat = np.diag(1.0/self.L).astype(complex)
         tr = sps.lil_matrix(invlmat * self.Bmat.T)
 
@@ -791,6 +778,7 @@ class Mygraph :
 
     def numeric_solver(self, ind = [], _integrator = 'dopri5', _cycles = 200, doplot = False) :
         """ Numerical solution to the problem.
+
         Code is based on the first order equations.
         The variable self.Nfk is the numerical solution in Fourier space.
         Makes plots for _indices if doplot = True.
@@ -873,7 +861,6 @@ class Mygraph :
         If save2file = False, then plots are generated automatically.
         """
 
-
         if whichplots.has_key('timesol') :
             if whichplots['timesol'] == True :
                 plt.figure(1)
@@ -922,9 +909,6 @@ class Mygraph :
                 shelllist = list(([-1], list(inp_nodes), list(oth_nodes)))
                 pos = nx.shell_layout(self.Gp, nlist = shelllist)
                 pos[-1] = np.array([0.0, 0.0])
-
-                # pos = nx.spring_layout(self.Gp, iterations = 100)
-                # pos[-1] = np.array([0.5, 0.5])
 
                 maxvoltages = np.max(self.itersolmat, axis = 1)
                 newmax = np.zeros(len(maxvoltages) + 1)
@@ -1039,21 +1023,11 @@ class Mygraph :
         _max = np.max(np.abs(self.itersolmat))
         print "Maximum amplitude in computed solution over all nodes in iterative solution    :\t{}".format(_max)
 
-        # print "Solution found upto order {}".format(self.Ord_req)
-        # print "Maxmode summary :\t", Counter(self.maxmode + 1)
-        # _adjmat = nx.adj_matrix(self.Gp)
-        # _adjmat = np.asarray(np.sum(_adjmat, 0))[0]
-        # _ind = np.nonzero(self.maxmode)
-        # _deg = _adjmat[_ind]
-        # print "Degree's for nodes with maxmode > 1 are :\n", _deg
-        # _ideg = _adjmat[np.nonzero(self.Input_nodes)[0]]
-        # print "Degree's for input nodes are :\n", _ideg
-
 if __name__ == '__main__' :
 
     # Pick Networkx type graph.
     gtype = 'barabasi_albert_graph'
-    # Assign atleast the required parameters for the graph.
+    # Assign the required parameters for the graph.
     param = dict(n = 25, m = 3)
 
     # Builds graph.
@@ -1081,7 +1055,7 @@ if __name__ == '__main__' :
     Input_nodes = [int(x) for x in Input_nodes]
     Input_nodes = np.array(Input_nodes)
 
-    L = 1 * np.ones(data.rawBmat.shape[1] + sum(Input_nodes))
+    L = 1.0 * np.ones(data.rawBmat.shape[1] + sum(Input_nodes))
     forc_amp = 1e+0 * 0.2
     forc_coef = np.array((1.0, 1.0))
     Ord_req = 10
@@ -1114,6 +1088,7 @@ if __name__ == '__main__' :
         pass
 
     # Reset the graph with the optimal values. This is very important.
+    # The graph structure should remain the same before optimization.
     newdata = Mygraph(gtype, param)
     newdata.Gp = data.Gp
     newdata.N = data.N
@@ -1122,7 +1097,6 @@ if __name__ == '__main__' :
     newdata.rawBmat = nx.incidence_matrix(data.Gp, oriented = True)
 
     newdata.init_graph(Cap0, Eps, data.L, G, Input_nodes, forc_amp, forc_coef, Ord_req, tpoints, Omega = omega)
-    # del data
     newdata.times = np.linspace(0.0, 2.0*np.pi / omega, tpoints)
 
     # Solves for the parameters upto order Ord_req.
@@ -1133,10 +1107,3 @@ if __name__ == '__main__' :
     # newdata.numeric_solver(_cycles = 1000, doplot = False)
     newdata.iterative_solver()
     newdata.summary()
-
-    # Some plots. Note : # The second 'comparesol' requires a calculation of all three solutions (numerical, iterative and perturbative)
-    # newdata.plot(whichplots = {'timesol' : True, 'numericsol' : True}, save2file = False)
-    # newdata.plot(whichplots = {'comparesol' : True}, whichnodes = [13], save2file = False)
-
-    # Solve the first order system of equations.
-    # newdata.firstordersolve()

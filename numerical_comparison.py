@@ -45,7 +45,7 @@ G[-latsize] = 1.0
 
 Input_nodes = np.zeros(data.N)
 Input_nodes[:latsize] = 1
-Input_nodes[np.arange(latsize, size + 1, latsize) - 1] = 1 # +1 is to ensure that the bot-left node has two inputs.
+Input_nodes[np.arange(latsize, latsize**2 + 1, latsize) - 1] = 1 # +1 is to ensure that the bot-left node has two inputs.
 Eps = 0.5
 L = 1 * (np.ones(2*latsize*(latsize - 1) + sum(Input_nodes)))
 
@@ -80,7 +80,8 @@ numerr = data.fixed_point_error(data.Nfk) # Plot for line.
 
 # Solve the perturbative system saving the fixed point error for the
 # solution upto order i.
-pertsoldiff = []
+pertfixeddiff = []
+pertNumdiff = []
 
 for i in xrange(1, Ord_req) :
   data.Coefcell = []
@@ -90,27 +91,32 @@ for i in xrange(1, Ord_req) :
   data.fouriersol()
   talpha = np.zeros((latsize**2,Ord_req-1)).astype(complex)
   talpha[:,:i] = data.FSol.T
-  newdiff = data.fixed_point_error(talpha)
-  pertsoldiff.append(newdiff)
+  pertfixeddiff.append(data.fixed_point_error(talpha))
+  data.timesol()
+  Ei = np.sqrt(sum(sum((data.Sol.T - data.NSol)**2))/tpoints)
+  pertNumdiff.append(Ei)
 
 # Solve the system using the iterative method with maxiter = i and save the error.
-itersoldiff = []
+iterfixeddiff = []
+iterNumdiff = []
 
 for i in xrange(1, 21) :
   data.iterative_solver(_maxiter = i,_tol = 3.0e-16)
-  itersoldiff.append(data.fixed_point_error(data.alphamat))
-  if itersoldiff[i-1] < 1e-16:
+  iterfixeddiff.append(data.fixed_point_error(data.alphamat))
+  Ei = np.sqrt(sum(sum((data.itersolmat - data.NSol)**2))/tpoints)
+  iterNumdiff.append(Ei)
+  if iterfixeddiff[i-1] < 1e-16:
     break
 
-fixedpointerror = np.zeros((len(itersoldiff),2))
-fixedpointerror[:,0] = pertsoldiff[:len(itersoldiff)]
-fixedpointerror[:,1] = itersoldiff
+fixedpointerror = np.zeros((len(iterfixeddiff),2))
+fixedpointerror[:,0] = pertfixeddiff[:len(iterfixeddiff)]
+fixedpointerror[:,1] = iterfixeddiff
 
 # Write out data for plot of fixed point error
 # The first line containds the error in numerical method.
 f = open('fixedpoint.txt','w')
 f.write('{0:g}\t{1:g}\n'.format(0.0,numerr))
-for i in xrange(len(itersoldiff)):
+for i in xrange(len(iterfixeddiff)):
   f.write('{0:g}\t{1:g}\n'.format(fixedpointerror[i,0],fixedpointerror[i,1]))
 f.close()
 
@@ -123,6 +129,15 @@ for i in xrange(20) :
 
 f = open('fdecay.txt','w')
 np.savetxt(f,fdecay,delimiter='\t')
+f.close()
+
+# Data for creating the figure labelled 4.
+# Difference in iterative/perturbative solutions as a function of iterations.
+numErrors = np.zeros((20,2))
+numErrors[:,0] = pertNumdiff
+numErrors[:,1] = iterNumdiff
+f = open('numerical.txt','w')
+np.savetxt(f,numErrors,delimiter='\t')
 f.close()
 
 # Create the plots shown in figures.

@@ -30,7 +30,6 @@ def fixedpointerror():
   print "Fixed point error for perturbative method : {0:g}".format(perterr)
   print "Fixed point error for iterative method    : {0:g}".format(itererr)
 
-
 # Create any random graph. Graph structure will be overwritten with a grid later.
 latsize = 20
 gtype = 'erdos_renyi_graph'
@@ -108,10 +107,11 @@ fixedpointerror[:,0] = pertsoldiff[:len(itersoldiff)]
 fixedpointerror[:,1] = itersoldiff
 
 # Write out data for plot of fixed point error
+# The first line containds the error in numerical method.
 f = open('fixedpoint.txt','w')
-f.write('# Numerical method error\t{0:g}\n'.format(numerr))
+f.write('{0:g}\t{1:g}\n'.format(0.0,numerr))
 for i in xrange(len(itersoldiff)):
-  f.write('{0:g}\t{1:g}\n'.format(result[i,0],result[i,1]))
+  f.write('{0:g}\t{1:g}\n'.format(fixedpointerror[i,0],fixedpointerror[i,1]))
 f.close()
 
 # Data for creating the decay of the Fourier coefficients.
@@ -124,3 +124,5 @@ for i in xrange(20) :
 f = open('fdecay.txt','w')
 np.savetxt(f,fdecay,delimiter='\t')
 f.close()
+
+# Create the plots shown in figures.

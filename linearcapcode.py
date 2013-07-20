@@ -3,16 +3,15 @@
 from __future__ import division
 from scipy import linalg as linalg
 from scipy.integrate import ode
+import scipy.sparse as sps
+from scipy.sparse import linalg as sla
+import scipy.fftpack as fftp
 import numpy as np
 import networkx as nx
 from inspect import getargspec
 import matplotlib.pyplot as plt
-import scipy.sparse as sps
-from scipy.sparse import linalg as sla
 import matplotlib.colors as colors
 import matplotlib.cm as cmx
-import scipy.fftpack as fftp
-
 np.seterr(all='warn', over='raise')
 
 class Mygraph :
@@ -44,9 +43,8 @@ class Mygraph :
                 if nx.is_connected(self.Gp) :
                     break
 
-
         except AttributeError :
-            print "Unknown graph. Check name."
+            print "Graph type does not exist. Check name."
             raise
         except TypeError :
             print "Arguments in graphvars do not meet requirements."
@@ -56,7 +54,7 @@ class Mygraph :
         self.graphvars = graphvars
         self.graphtype = graphtype
         self.graphvars = graphvars
-        self.rawBmat = nx.incidence_matrix(self.Gp, oriented = True)
+        self.rawBmat = nx.incidence_matrix(self.Gp, oriented = True) # Random orientation does not affect the solution
 
     def init_graph(self, Cap0, Eps, L, G, Input_nodes, forc_amp, forc_coef , Ord_req, tpoints = 51, Omega = -1.0, gtype = 'random') :
         """ Set system parameters.
@@ -76,87 +74,26 @@ class Mygraph :
         The Bmat matrix has been converted to a sparse format.
         Currently two eigenvalues are calculated.
 
-        To call the code for a random graph use gtype = 'random'.
-        This will do all the required work and create all the variables.
-
-        For the square grid graph with forcing on the left and bottom boundaries
-        use gtype = 'grid'. Remember to override the Omega variable.
-        If you do override the Omega variable remember to run the following
-        code afterwards:
-        _times = np.linspace(0.0, 2.0*np.pi / self.Omega, tpoints)
-        _times = _times[:-1]
-        self.times = _times
-
+        Depending on a 'grid' or 'random' graph is used the variables
+        used are set here.
 
         """
-        if gtype is 'random' :
-            tempeye = np.eye(self.N)
+        tempeye = np.eye(self.N)
 
-            # Need this if there are more than 1 inputs to a node.
-            def retvec(x, ind) :
-                return np.ones(x) * ind
-            ind_inp = np.array([])
-            for i in xrange(len(Input_nodes)) :
-                ind_inp = np.hstack([ind_inp, retvec(Input_nodes[i], i)])
-            ind_inp = ind_inp.astype(np.int32)
+        # Need this if there are more than 1 inputs to a node.
+        def retvec(x, ind) :
+            return np.ones(x) * ind
+        ind_inp = np.array([])
+        for i in xrange(len(Input_nodes)) :
+            ind_inp = np.hstack([ind_inp, retvec(Input_nodes[i], i)])
+        ind_inp = ind_inp.astype(np.int32)
+
+        if gtype is 'random' :
             self.Bmat = np.hstack((-self.rawBmat, tempeye[:, ind_inp]))
             self.Bmat = sps.lil_matrix(self.Bmat).tocsr()
 
-            try :
-
-                self.Cap0 = Cap0
-                self.L = L
-                self.G = G
-                self.Input_nodes = Input_nodes
-                self.Eps = Eps
-                self.Ord_req = Ord_req
-                self.Coefcell = []
-                self.Symcell = []
-                self.forc_amp = forc_amp
-                self.forc_coef = forc_coef
-                self.Graphlap = self.Bmat * sps.diags(1.0/self.L, 0, shape = ((len(self.L), len(self.L)))) *  self.Bmat.T
-            except :
-                print "Array size for parameters is not consistent in init_graph."
-
-            if Omega > 0 :
-                self.Omega = Omega
-
-            else :
-                eigvals, evecs = sla.eigsh(self.Graphlap, k = 2, which = 'LM', sigma = 0.0, maxiter = 2000, mode = 'normal')
-                eigvals = np.real(eigvals)
-                eigvals.sort()
-                self.Omega = np.sqrt(eigvals[1])                     # OMEGA
-
-            # move this here so it is independent of the solution method
-            # also, this is consistent with the idea of initializing "self"
-            # in this function
-            _times = np.linspace(0.0, 2.0*np.pi / self.Omega, tpoints)
-            _times = _times[:-1]
-            self.times = _times
-
-            Pmat = sps.lil_matrix((self.Bmat.shape[0], self.Bmat.shape[1]))
-            sparseeye = sps.eye(self.Bmat.shape[0], self.Bmat.shape[0])
-            sparseeye = sparseeye.tolil()
-            Pmat[:, -int(sum(Input_nodes)) :] = sparseeye[:, ind_inp]
-            _temp = np.zeros(self.Bmat.shape[0])
-            _temp[Input_nodes > 0] = 1.0
-            self.W = np.zeros(self.Bmat.shape[1]).astype(complex)
-            self.W = Pmat.T * _temp.reshape(-1, 1) * forc_amp * (forc_coef[0] + 1.0j * forc_coef[1])
-
-            self.Vin = self.Bmat * sps.diags(1.0/self.L, 0, shape = ((len(self.L), len(self.L)))) * self.W.reshape(-1, 1)
-            return
-
         elif gtype is 'grid' :
-            tempeye = np.eye(self.N)
             latsize = int(np.sqrt(len(Cap0)))
-            # Need this is there are more than 1 inputs to a node.
-            def retvec(x, ind) :
-                return np.ones(x) * ind
-            ind_inp = np.array([])
-            for i in xrange(len(Input_nodes)) :
-                ind_inp = np.hstack([ind_inp, retvec(Input_nodes[i], i)])
-            ind_inp = ind_inp.astype(np.int32)
-
             # Create the Bmat matrix.
             bigmat = sps.lil_matrix((latsize**2, 2*(latsize * (latsize - 1))))
 
@@ -173,52 +110,50 @@ class Mygraph :
             # Fit the input nodes to the bottom and left boundaries.
             leftbound = sps.spdiags((np.ones(latsize)), 0, latsize**2, latsize)
             botbound = sps.identity(latsize**2).tocsr()
-
             botbound = botbound[:, np.arange(2 * latsize, latsize**2 + 1, latsize) - 1]
 
             self.Bmat = sps.hstack((bigmat, leftbound, botbound)).tocsr()
 
-            try :
-                self.M = latsize            # The size of the lattice.
-                self.Cap0 = Cap0
-                self.L = L
-                self.G = G
-                self.Input_nodes = Input_nodes
-                self.Eps = Eps
-                self.Ord_req = Ord_req
-                self.Coefcell = []
-                self.Symcell = []
-                self.forc_amp = forc_amp
-                self.forc_coef = forc_coef
-                self.Graphlap = self.Bmat * sps.diags(1.0/self.L, 0, shape = ((len(self.L), len(self.L)))) *  self.Bmat.T
+        # Common for all types of graph.
+        try :
+            self.Cap0 = Cap0
+            self.L = L
+            self.G = G
+            self.Input_nodes = Input_nodes
+            self.Eps = Eps
+            self.Ord_req = Ord_req
+            self.Coefcell = []
+            self.Symcell = []
+            self.forc_amp = forc_amp
+            self.forc_coef = forc_coef
+            self.Graphlap = self.Bmat * sps.diags(1.0/self.L, 0, shape = ((len(self.L), len(self.L)))) *  self.Bmat.T
+        except :
+            print "Array size for parameters is not consistent in init_graph."
 
-            except :
-                print "Array size for parameters is not consistent in init_graph."
+        if Omega > 0 :
+            self.Omega = Omega
 
-            if Omega < 0 :
-                eigvals, evecs = sla.eigsh(self.Graphlap, k = 2, which = 'LM', sigma = 0.0, maxiter = 2000, mode = 'normal')
+        else :
+            eigvals, evecs = sla.eigsh(self.Graphlap, k = 2, which = 'LM', sigma = 0.0, maxiter = 2000, mode = 'normal')
+            eigvals = np.real(eigvals)
+            eigvals.sort()
+            self.Omega = np.sqrt(eigvals[1])                     # OMEGA
 
-                eigvals = np.real(eigvals)
-                eigvals.sort()
-                self.Omega = np.sqrt(eigvals[1])                     # OMEGA
-            else :
-                self.Omega = Omega
+        _times = np.linspace(0.0, 2.0*np.pi / self.Omega, tpoints)
+        _times = _times[:-1]
+        self.times = _times
 
-            _times = np.linspace(0.0, 2.0*np.pi / self.Omega, tpoints)
-            _times = _times[:-1]
-            self.times = _times
+        Pmat = sps.lil_matrix((self.Bmat.shape[0], self.Bmat.shape[1]))
+        sparseeye = sps.eye(self.Bmat.shape[0], self.Bmat.shape[0])
+        sparseeye = sparseeye.tolil()
+        Pmat[:, -int(sum(Input_nodes)) :] = sparseeye[:, ind_inp]
+        _temp = np.zeros(self.Bmat.shape[0])
+        _temp[Input_nodes > 0] = 1.0
+        self.W = np.zeros(self.Bmat.shape[1]).astype(complex)
+        self.W = Pmat.T * _temp.reshape(-1, 1) * forc_amp * (forc_coef[0] + 1.0j * forc_coef[1])
 
-            Pmat = sps.lil_matrix((self.Bmat.shape[0], self.Bmat.shape[1]))
-            sparseeye = sps.eye(self.Bmat.shape[0], self.Bmat.shape[0])
-            sparseeye = sparseeye.tolil()
-            Pmat[:, -int(sum(Input_nodes)) :] = sparseeye[:, ind_inp]
-            _temp = np.zeros(self.Bmat.shape[0])
-            _temp[Input_nodes > 0] = 1.0
-            self.W = np.zeros(self.Bmat.shape[1]).astype(complex)
-            self.W = Pmat.T * _temp.reshape(-1, 1) * forc_amp * (forc_coef[0] + 1.0j * forc_coef[1])
-
-            self.Vin = self.Bmat * sps.diags(1.0/self.L, 0, shape = ((len(self.L), len(self.L)))) * self.W.reshape(-1, 1)
-            return
+        self.Vin = self.Bmat * sps.diags(1.0/self.L, 0, shape = ((len(self.L), len(self.L)))) * self.W.reshape(-1, 1)
+        return
 
     def Malpha(self, RHS, alpha) :
         """ Forms and solves the LU system.

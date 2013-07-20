@@ -1017,7 +1017,7 @@ class Mygraph :
         print "Underlying Graph is {0:s} with parameters {1:s}".format(self.graphtype,self.graphvars)
         print "Solving for {0:d} modes".format(self.Ord_req)
         print "Difference in energy in the perturbative solution is :\t{}".format(np.abs(self.pertEDiff))
-        print "Difference in energy in the iterative solution is    :\t{}".format(np.abs(self.pertEDiff))
+        print "Difference in energy in the iterative solution is    :\t{}".format(np.abs(self.iterEDiff))
 
         _max = np.max(np.abs(self.Sol.real))
         print "Maximum amplitude over all nodes in perturbative solution :\t{}".format(_max)

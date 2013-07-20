@@ -11,7 +11,6 @@ import scipy.sparse as sps
 from scipy.sparse import linalg as sla
 import matplotlib.colors as colors
 import matplotlib.cm as cmx
-import pdb
 import scipy.fftpack as fftp
 
 np.seterr(all='warn', over='raise')
@@ -145,7 +144,6 @@ class Mygraph :
             self.W = Pmat.T * _temp.reshape(-1, 1) * forc_amp * (forc_coef[0] + 1.0j * forc_coef[1])
 
             self.Vin = self.Bmat * sps.diags(1.0/self.L, 0, shape = ((len(self.L), len(self.L)))) * self.W.reshape(-1, 1)
-            # import pdb; pdb.set_trace()
             return
 
         elif gtype is 'grid' :

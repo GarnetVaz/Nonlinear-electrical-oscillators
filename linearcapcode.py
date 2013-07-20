@@ -158,7 +158,6 @@ class Mygraph :
     def Malpha(self, RHS, alpha) :
         """ Forms and solves the LU system.
 
-
         Returns the new coeffcient. Does not automatically update any value.
         Internally called by method - solve.
         """
@@ -169,6 +168,7 @@ class Mygraph :
     def Higher_order(self, itr, _ord = 0) :
         """ Form higher order solutions.
 
+        Higher order solutions for the Perturbative method.
         Will not return anything. Will update Coefcell
         and Symcell before exit. Internally called by method - solve.
         """
@@ -209,7 +209,7 @@ class Mygraph :
 
 
     def solve(self) :
-        """ Main solve function.
+        """ Main solve function for the perturbative method.
 
         Solution will be found up to order self.Ord_req. Internally calls
         both Malpha and higher_order.
@@ -223,11 +223,11 @@ class Mygraph :
         for itr in xrange(1, self.Ord_req) :
             self.Higher_order(itr, _ord = 0)
 
-
     def extend(self, _ord = 1) :
         """ Finds the solution one more order (default), or upto '_ord' more orders.
 
         It automatically updates both the time_sol and the fouriersol.
+        Used to check if extending the order helps improve the solution.
         """
         for itr in xrange(self.Ord_req, self.Ord_req + _ord) :
             self.Higher_order(itr, _ord)
@@ -269,7 +269,6 @@ class Mygraph :
 
                 self.Sol[i,:] = _tsol
 
-            # print "Order of solution increased from {} to {}".format(self.Ord_req, self.Ord_req + more_ord)
             self.Ord_req += more_ord # Updating the Ord_req to get to current order.
 
             # Update Fourier solution as well.
@@ -281,23 +280,24 @@ class Mygraph :
         else :
             print "Order to increase cannot be negative."
 
-        # maxvoltage = 1.0/self.Eps
-        # if (np.max(np.abs(self.Sol.real)) > maxvoltage) :
-        #     print "Solution is not right because capacitance function has crossed 0."
+        maxvoltage = 1.0/self.Eps
+        if (np.max(np.abs(self.Sol)) > maxvoltage) :
+            print "Solution is not right because capacitance function has crossed 0."
 
     def optimalL(self, deseigs = np.zeros(0), maxiters = 2000) :
         """Finds the optimal values of L using Newton's method.
 
         Requires an input of Omega values which are smaller than the number of nodes.
-        The actual vector can be smaller than self.N.
+        The actual vector can be smaller than self.N. If no desired eigenvalues are
+        provided then the desired eigenvalues are set to
+        [0.75*\lambda_2**2, \lambda_2**2] where \lambda_2 is the second smallest eigenvalue.
         """
 
         if deseigs.shape[0] == 0 :
             deseigs = np.array([0.75*data.Omega**2, data.Omega**2]).flatten()
 
         _ind = np.argsort(deseigs)
-        deseigs = deseigs[_ind[range(0, len(deseigs), 1)]] # To sort in ascending order.
-        # deseigs = deseigs[_ind[range(len(deseigs) - 1, -1, -1)]] # To sort in descending order.
+        deseigs = deseigs[_ind[range(0, len(deseigs), 1)]] # Sort
 
         # Newton loop
         Lvec = self.L
@@ -306,9 +306,6 @@ class Mygraph :
         numedges = Bmat.shape[1]
         normvec = np.zeros(maxiters)
         mycounter = 0
-
-        ### TEMP
-        # normvec = []
 
         for i in xrange(maxiters):
 
@@ -321,9 +318,6 @@ class Mygraph :
             # now figure out eigenpairs
             # d, v = linalg.eig(graphlap)
 
-            # Just to debug the code.
-            # graphlap = sps.lil_matrix(graphlap)
-            # graphlap = sps.csc_matrix(graphlap)
             try :
                 d, v = sla.eigsh(graphlap, k = ndes, which = 'LM', maxiter = 2000, sigma = 0.0, mode = 'normal')
 
@@ -339,7 +333,7 @@ class Mygraph :
             v = v[:, sortid[:ndes]] # Pick the evecs and evals corresponding to the smallest evals.
             d = d[sortid[:ndes]]
 
-            # Using the faster version. Can be verified that they both produce same results.
+            # Setup Jacobian
             _jac = np.zeros((ndes, numedges)).astype(complex)
 
             for j in xrange(ndes) : # column increase
@@ -411,14 +405,13 @@ class Mygraph :
             step = step.flatten(1)
             if linalg.norm(step.imag) < 1e-14 :
                 step = np.real(step)
-                Lvec -= 0.15 * step
+                Lvec -= 0.15 * step # 0.15 = damping factor
                 mycounter += 1
 
             else :
                 mycounter = 2000
                 break
 
-        # self.nvec = normvec
         self.newtoniter = int(mycounter)
         self.L = 1.0 / actualLvec
         self.Graphlap = Bmat * sps.diags(actualLvec, 0, shape = ((numedges, numedges))) * Bmat.T

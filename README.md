@@ -12,7 +12,7 @@ The code has only been tested on a linux platform with Ubuntu 12.04
   3. Numpy >= 1.6.1
   4. Matplotlib - 1.1.1rc
 
-** R 
+** R (used just for creating plots)
   1. reshape - 0.8.4   
   2. ggplot2 - 0.9.3.1 
   3. plyr_1.8

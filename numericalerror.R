@@ -27,4 +27,4 @@ myplot <- myplot + theme(panel.grid.minor = element_blank())
 myplot <- myplot + theme(panel.background = element_blank())
 myplot <- myplot + theme(axis.line = element_line(colour = "black"))
 
-ggsave(myplot,file='fourierdecay.eps',width=3.5,height=4,units="in",dpi=500)
+ggsave(myplot,file='numericalerror.eps',width=3.5,height=4,units="in",dpi=500)

@@ -21,4 +21,6 @@ The code _linearcapcode.py_ is the main code holding the class definition along 
 To obtain a quick summary of a single simulation you can use:
 $ run linearcapcode.py
 
-To obtain all the results described in Section 5 of the paper use the code *numerical_comparison.py*
+To obtain all the results described in Section 5 of the paper use the code *numerical_comparison.py*.
+
+The R codes are internally called from Python and need not be run independently.

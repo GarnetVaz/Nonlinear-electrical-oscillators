@@ -28,6 +28,14 @@ The R codes are internally called from Python and need not be run independently.
 To run simulations and create plots as shown in Section 7 would also require
 the python module multiprocessing >= 0.70a1.
 
+The code _graphmulti.py_ will run the simulations corresponding to the barabasi-albert graphs.
+Graph type can be changed as documented in the code to erdos-renyi or watts-strogatz graphs.
+The plots as shown in Section 7 will be generated automatically using R.
+
+The code _graphmulti.py_ is set to use 10 processors. This can be reduced if needed in line 231
+with the variable 'numparallel'. Running the complete set of simulations for one type of graph
+will take about 6+ hours.
+
 
 
 

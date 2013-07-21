@@ -4,7 +4,7 @@ Nonlinear-electrical-oscillators
 Code to obtain the results in the paper.
 The code has only been tested on a linux platform with Ubuntu 12.04
 
-*Requirements:
+**Requirements:**
 
 ** Python 2.7.3 along with the following modules:
   1. Networkx - 1.7
@@ -24,3 +24,11 @@ $ run linearcapcode.py
 To obtain all the results described in Section 5 of the paper use the code *numerical_comparison.py*.
 
 The R codes are internally called from Python and need not be run independently.
+
+To run simulations and create plots as shown in Section 7 would also require
+the python module multiprocessing >= 0.70a1.
+
+
+
+
+

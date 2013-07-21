@@ -3,12 +3,15 @@ Nonlinear-electrical-oscillators
 
 Code to obtain the results in the paper.
 The code has only been tested on a linux platform with Ubuntu 12.04
+
 *Requirements:
+
 ** Python 2.7.3 along with the following modules:
   1. Networkx - 1.7
   2. Scipy >= 0.12.0
   3. Numpy >= 1.6.1
   4. Matplotlib - 1.1.1rc
+
 ** R 
   1. reshape - 0.8.4   
   2. ggplot2 - 0.9.3.1 

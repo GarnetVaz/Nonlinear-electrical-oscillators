@@ -148,7 +148,7 @@ class Mygraph :
             eigvals, evecs = sla.eigsh(self.Graphlap, k = 2, which = 'LM', sigma = 0.0, maxiter = 2000, mode = 'normal')
             eigvals = np.real(eigvals)
             eigvals.sort()
-            self.Omega = np.sqrt(eigvals[1])                     # OMEGA
+            self.Omega = np.sqrt(eigvals[1])
 
         _times = np.linspace(0.0, 2.0*np.pi / self.Omega, tpoints)
         _times = _times[:-1]
@@ -306,6 +306,7 @@ class Mygraph :
 
         if deseigs.shape[0] == 0 :
             deseigs = np.array([0.75*data.Omega**2, data.Omega**2]).flatten()
+            print "Eigenvalue gap \delta chosen to be 0.75"
 
         _ind = np.argsort(deseigs)
         deseigs = deseigs[_ind[range(0, len(deseigs), 1)]] # Sort

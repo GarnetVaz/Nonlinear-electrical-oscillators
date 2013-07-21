@@ -13,7 +13,7 @@ Specifically :
 
 import linearcapcode as cc
 import numpy as np
-import sys
+import os
 
 def energy_comparison():
   # Table 4
@@ -63,7 +63,7 @@ data.Omega = 1.0
 data.solve()
 data.fouriersol()
 # Solve the system using the numerical integrator.
-data.numeric_solver(doplot = False, _cycles = 150)
+data.numeric_solver(doplot = False, _cycles = 1500)
 
 # Obtain a reference solution from the iterative method.
 try :

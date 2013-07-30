@@ -17,18 +17,29 @@ The code has only been tested on a linux platform with Ubuntu 12.04
   2. ggplot2 - 0.9.3.1 
   3. plyr_1.8
 
-The code _linearcapcode.py_ is the main code holding the class definition along with all methods.
-To obtain a quick summary of a single simulation you can use:
+The code "linearcapcode.py" is the main code holding the class 
+definition along with all methods.  To obtain a quick summary of a 
+single simulation, use:
 $ run linearcapcode.py
 
-To obtain all the results described in Section 5 of the paper use the code *numerical_comparison.py*.
+To obtain all the results described in the "Results: Comparison of 
+Steady-State Algorithms" subsection of the paper, use the code 
+"numerical_comparison.py".
 
-The R codes are internally called from Python and need not be run independently.
+The R codes are called internally from Python and need not be run 
+independently.
 
-To run simulations and create plots as shown in Section 7 would also require
-the python module multiprocessing >= 0.70a1.
+To run simulations and create the plots described in the "Results: 
+Gap Tuning" subsection of the paper, one also needs the Python module 
+multiprocessing >= 0.70a1.
 
+The code "graphmulti.py" will run the simulations corresponding to 
+the barabasi-albert graphs.  Graph type can be changed as documented 
+in the code to erdos-renyi or watts-strogatz graphs.  Plots will be 
+generated automatically using R.
 
-
-
+The code "graphmulti.py" is set to use 10 processors. This can be 
+reduced if needed in line 231 with the variable 'numparallel'. 
+Running the complete set of simulations for one type of graph will 
+take 6+ hours.
 
